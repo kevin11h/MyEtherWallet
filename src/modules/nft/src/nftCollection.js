@@ -35,6 +35,8 @@ export default class NftCollection {
       contractAddresses: this.contracts,
       tokens: this.tokens
     });
+    this.failureRetryReset = false;
+    this.displayEndIndex = 0;
   }
 
   getTokens() {
@@ -42,7 +44,7 @@ export default class NftCollection {
   }
 
   getTokenCount() {
-    return this.tokens.length;
+    return this.count;
   }
 
   activate() {
@@ -105,21 +107,58 @@ export default class NftCollection {
 
   async getPageState() {
     return new Promise((resolve, reject) => {
-      if (this.tokens.length === 0) {
-        return this.getNftDetails().then(resolve).catch(reject);
+      try {
+        if (this.tokens.length === 0) {
+          return this.getNftDetails().then(resolve).catch(reject);
+        }
+        const startIndex = this.getStartIndex();
+        const endIndex = this.getEndIndex();
+        console.log(
+          'startIndex, endIndex',
+          startIndex,
+          endIndex < this.count ? endIndex : this.count
+        ); // todo remove dev item
+        if (
+          this.tokens.length <= this.getEndIndex() &&
+          this.tokens.length <= this.getStartIndex()
+        ) {
+          return this.getNftDetails(this.contract, startIndex, endIndex)
+            .then(resolve)
+            .catch(reject);
+        }
+        return resolve({
+          name: this.name,
+          currentPage: this.currentPage,
+          count: this.count,
+          tokens: this.selectNftsToShow()
+        });
+      } catch (e) {
+        if (this.failureRetryReset) {
+          this.failureRetryReset = false;
+          return reject(e);
+        }
+        this.failureRetryReset = true;
+        this.currentPage = 1;
+        return this.getPageState();
       }
-      return resolve({
-        name: this.name,
-        currentPage: this.currentPage,
-        count: this.count,
-        tokens: this.selectNftsToShow()
-      });
     });
   }
 
+  getStartIndex() {
+    return this.currentPage * this.countPerPage - this.countPerPage;
+  }
+
+  getEndIndex() {
+    const endIndex = this.currentPage * this.countPerPage;
+    if (this.count > endIndex) {
+      return endIndex;
+    }
+    return this.count;
+  }
+
   selectNftsToShow() {
-    let startIndex = this.currentPage * this.countPerPage - this.countPerPage;
-    let endIndex = this.currentPage * this.countPerPage;
+    let startIndex = this.getStartIndex();
+    let endIndex = this.getEndIndex();
 
     if (startIndex < 0) {
       startIndex = 0;
@@ -140,48 +179,75 @@ export default class NftCollection {
 
   getNftDetails(contract, startIndex = -1, endIndex = -1) {
     return new Promise((resolve, reject) => {
-      let params;
-      if (startIndex >= 0 && endIndex >= 0) {
-        params = {
-          address: this.address,
-          contractAddresses: this.contracts,
-          startIndex,
-          endIndex
+      try {
+        let params;
+        if (startIndex >= 0 && endIndex >= 0 && endIndex <= this.count) {
+          params = {
+            address: this.address,
+            contractAddresses: this.contracts,
+            startIndex,
+            endIndex
+          };
+        } else {
+          params = {
+            address: this.address,
+            contractAddresses: this.contracts
+          };
+        }
+
+        const tokenParse = item => {
+          // console.log(item); // todo remove dev item
+          if (item.name) {
+            if (item.name.includes('ENS') && item.name.includes('Unknown')) {
+              return {
+                description: item.description,
+                name: `#${item.token_id.slice(0, 6)}...${item.token_id.slice(
+                  -6
+                )}`,
+                token_id: item.token_id,
+                contract: item.contract
+              };
+            }
+          }
+          if (item.name) {
+            if (item.name.length > 30) {
+              item.name = item.name.slice(0, 30);
+            }
+          }
+
+          return {
+            description: item.description,
+            name: !item.name ? `#${item.token_id}` : item.name,
+            token_id: item.token_id,
+            contract: item.contract
+          };
         };
-      } else {
-        params = {
-          address: this.address,
-          contractAddresses: this.contracts
-        };
+
+        this.api
+          .getNftDetailsApi(this.contract, params)
+          .then(data => {
+            let allTokens = [];
+            if (!this.initialSetRetrieved) {
+              this.initialSetRetrieved = true;
+            }
+            if (!data) {
+              resolve(this.tokens);
+              return;
+            }
+            // console.log('data.tokens', data.tokens); // todo remove dev item
+            allTokens = data.tokens.map(tokenParse);
+            // console.log(allTokens); // todo remove dev item
+            this.tokens = allTokens;
+            this.isActive = true;
+            resolve(allTokens);
+          })
+          .catch(err => {
+            this.currentPage = this.currentPage - 1;
+            reject(err);
+          });
+      } catch (e) {
+        console.log(e); // todo remove dev item
       }
-
-      const tokenParse = item => {
-        return {
-          description: item.description,
-          name: item.name,
-          token_id: item.token_id,
-          contract: item.contract
-        };
-      };
-
-      this.api
-        .getNftDetailsApi(this.contract, params)
-        .then(data => {
-          let allTokens = [];
-          if (!this.initialSetRetrieved) {
-            this.initialSetRetrieved = true;
-          }
-          if (!data) {
-            resolve(this.tokens);
-            return;
-          }
-          allTokens = data.tokens.map(tokenParse);
-
-          this.tokens = allTokens;
-          this.isActive = true;
-          resolve(allTokens);
-        })
-        .catch(reject);
     });
   }
 
@@ -214,9 +280,8 @@ export default class NftCollection {
   incrementTokenList() {
     return new Promise((resolve, reject) => {
       try {
-        let startIndex =
-          this.currentPage * this.countPerPage - this.countPerPage;
-        let endIndex = this.currentPage * this.countPerPage;
+        let startIndex = this.getStartIndex();
+        let endIndex = this.getEndIndex();
         if (
           this.tokens.length >= this.count ||
           this.tokens.length >= endIndex
@@ -236,17 +301,17 @@ export default class NftCollection {
           startIndex = 0;
           endIndex = 9;
         }
-        const selectedContract = this.selectedContract;
+        // const selectedContract = this.selectedContract;
 
-        this.getNftDetails(selectedContract, startIndex, endIndex).then(
-          result => {
-            this.startIndex = startIndex;
-            this.endIndex = endIndex;
-            this.tokens = result;
-            this.collectionLoading = false;
-            return resolve(this.getPageState());
-          }
-        );
+        // this.getNftDetails(selectedContract, startIndex, endIndex).then(
+        //   result => {
+        //     this.startIndex = startIndex;
+        //     this.endIndex = endIndex;
+        //     this.tokens = result;
+        //     this.collectionLoading = false;
+        //     return resolve(this.getPageState());
+        //   }
+        // );
       } catch (e) {
         reject(e);
       }
@@ -254,10 +319,22 @@ export default class NftCollection {
   }
 
   hasNextPage() {
+    if (this.currentPage === 1 && this.count >= this.countPerPage) {
+      return true;
+    }
     const moreAvailableToGet =
       this.count > this.currentPage * this.countPerPage;
-    const moreToGetForPage =
-      this.tokens.length <= (this.currentPage + 1) * this.countPerPage;
+    const moreToGetForPage = this.count >= this.tokens.length;
+    // ? this.tokens.length <= this.currentPage * this.countPerPage
+    // : this.tokens.length >= (this.currentPage + 1) * this.countPerPage;
+    console.log(
+      this.tokens.length,
+      this.count,
+      'moreAvailableToGet',
+      moreAvailableToGet,
+      'moreToGetForPage',
+      moreToGetForPage
+    ); // todo remove dev item
     return moreAvailableToGet && moreToGetForPage;
   }
 
@@ -271,6 +348,10 @@ export default class NftCollection {
       return this.incrementTokenList();
     }
     return Promise.resolve(this.getPageState());
+  }
+
+  hasPrevious() {
+    return this.currentPage >= 2;
   }
 
   getPrevious() {

@@ -10,6 +10,7 @@ export default class Nft {
     this.activeAddress = environment.address;
     this.setAvailableContracts = environment.setAvailableContracts;
     this.web3 = environment.web3;
+    this.apollo = environment.apollo;
     this.openSeaLambdaUrl = configs.url;
     this.nftConfig = {};
     this.selectedContract = '';
@@ -18,7 +19,8 @@ export default class Nft {
 
     this.api = new API({
       url: this.openSeaLambdaUrl,
-      address: this.activeAddress
+      address: this.activeAddress,
+      apollo: this.apollo
     });
   }
 
@@ -48,7 +50,8 @@ export default class Nft {
                   details: data,
                   api: this.api,
                   address: this.activeAddress,
-                  web3: this.web3
+                  web3: this.web3,
+                  apollo: this.apollo
                 });
                 this.ownedTokenBasicDetails.push(
                   nftData[data.contractIdAddress].getPanelDetails()

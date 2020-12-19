@@ -1,14 +1,18 @@
 import fetch from 'node-fetch';
+import WalletCalls from '@/apollo/queries/tokens721/index';
 
 export default class API {
   constructor(options) {
     this.openSeaLambdaUrl = options.url;
     this.address = options.address;
     this.retryCount = 0;
+    this.wallet = new WalletCalls(options.apollo);
   }
 
   getTokens() {
     return new Promise((resolve, reject) => {
+      this.wallet.getOwnersERC721TokensBalances(this.address)
+        .then(console.log)
       fetch(`${this.openSeaLambdaUrl}/nft?address=${this.address}`, {
         mode: 'cors',
         cache: 'no-cache',
@@ -19,6 +23,7 @@ export default class API {
           if (newData.message) {
             throw Error(newData.message);
           }
+          // console.log(newData); // todo remove dev item
           resolve(newData);
         })
         .catch(error => {
@@ -37,7 +42,11 @@ export default class API {
   }
 
   getNftDetailsApi(contract, params) {
-    return fetch(`${this.openSeaLambdaUrl}/nft`, {
+    console.log(params.address, contract); // todo remove dev item
+      // .then(result => {
+      //   return
+      // })
+    fetch(`${this.openSeaLambdaUrl}/nft`, {
       mode: 'cors',
       cache: 'no-cache',
       method: 'POST',
@@ -50,10 +59,14 @@ export default class API {
     })
       .then(data => data.json())
       .then(data => {
+        console.log('deetail', data.result); // todo remove dev item
+
         return data.result.tokenContracts.find(item => {
           return item.contractIdAddress === contract;
         });
       });
+    return this.wallet.getOwnersERC721Tokens(params.address, contract)
+
   }
 
   getImage(nft) {

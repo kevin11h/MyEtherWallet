@@ -2,15 +2,17 @@ import Nft from './src';
 import utils from 'web3-utils';
 
 export default class NFT {
-  constructor({ network, address, web3 }) {
+  constructor({ network, address, web3, apollo }) {
     this.network = network;
     this.address = address;
     this.web3 = web3;
+    this.apollo = apollo;
     this.nft = new Nft({
       network: this.network,
       address: this.address,
       setAvailableContracts: this.setAvailableContracts.bind(this),
-      web3: this.web3
+      web3: this.web3,
+      apollo: this.apollo
     });
     this.availableContracts = [];
     this.selectedContract = {};
@@ -76,6 +78,14 @@ export default class NFT {
     return this.currentActive.getTokenCount();
   }
 
+  getCurrentPage() {
+   return this.currentActive.currentPage
+  }
+
+  getCountPerPage(){
+    return this.currentActive.countPerPage
+  }
+
   getAvailableContracts() {
     return this.nft.getOwnedTokenBasicDetails();
   }
@@ -122,6 +132,10 @@ export default class NFT {
     return Promise.resolve();
   }
 
+  hasPriorPage() {
+    return this.currentActive.hasPrevious();
+  }
+
   priorPage() {
     return this.currentActive.getPrevious();
   }
@@ -136,6 +150,10 @@ export default class NFT {
 
   getImageUrl(tokenId, contract) {
     if (!contract) contract = this.currentActive.contract;
+    if(tokenId.slice(0,2) === '0x'){
+      tokenId = tokenId.slice(2);
+    }
+    console.log(tokenId); // todo remove dev item
     return this.currentActive.getImageUrl(contract, tokenId);
   }
 }

@@ -14,7 +14,11 @@
                     <h5 class="font-weight-bold">
                       {{ nft.getActiveName() }}
                     </h5>
-                    <div>Total {{ nft.getTokenCount() }}</div>
+                    <div>
+                      Showing {{ startIndex }} to {{ endIndex }}
+                      <!--of Total
+                      {{ nft.getTokenCount() }}-->
+                    </div>
                   </div>
                   <div v-if="tokens.length === 0">Loading</div>
                   <div v-if="tokens.length !== 0">
@@ -23,6 +27,7 @@
                       class="pl-4 pr-6 py-0 mb-2 d-flex align-center justify-space-between"
                     >
                       <mew-button
+                        v-if="hasPriorPage"
                         :has-full-width="false"
                         btn-style="outline"
                         title="Prior"
@@ -34,7 +39,7 @@
                         btn-style="outline"
                         title="Next"
                         btn-size="small"
-                        :disabled="!hasNextPage"
+                        :disabled="!hasNextPage && !contentLoading"
                         @click.native="nextPage"
                       />
                     </div>
@@ -52,7 +57,7 @@
                           :src="kitty.image ? kitty.image : imageUrl(kitty)"
                           alt="Crypto Kitty"
                         />
-                        <div class="ml-5 pa-10">#{{ kitty.name }}</div>
+                        <div class="ml-5 pa-10">{{ kitty.name }}</div>
                       </div>
                       <mew-button
                         :has-full-width="false"
@@ -165,7 +170,7 @@ import InterfaceWrap from '@/components/interface-wrap/InterfaceWrap';
 import { mapState } from 'vuex';
 import sanitizeHex from '../../../../../helpers/sanitizeHex';
 import BigNumber from 'bignumber.js';
-import { Toast, SUCCESS } from '@/components/toast';
+import { SUCCESS, Toast } from '@/components/toast';
 import getService from '@/helpers/getService';
 
 export default {
@@ -200,7 +205,10 @@ export default {
       data: '0x',
       clearAll: false,
       txFeeInETH: '0',
-      txFeeInUSD: '0'
+      txFeeInUSD: '0',
+      currentPage: 1,
+      countPerPage: 9,
+      contentLoading: false
     };
   },
   computed: {
@@ -227,15 +235,34 @@ export default {
       }
       return false;
     },
+    hasPriorPage() {
+      this.tokens;
+      if (this.ready) {
+        return this.nft.hasPriorPage();
+      }
+      return false;
+    },
     validValues() {
-      return this.isValidAddress();
+      return this.isValidAddress() && this.activeAddress !== '';
+    },
+    activeAddress() {
+      // return this.address
+      return '0x2e9ed02f4a431ce26e81ec4f1f879fce7daf008d';
+    },
+    startIndex() {
+      return 1 + (this.currentPage * this.countPerPage - this.countPerPage);
+    },
+    endIndex() {
+      const endIdx = this.currentPage * this.countPerPage;
+      return this.tokens.length < endIdx ? endIdx : this.tokens.length;
     }
   },
   mounted() {
     this.nft = new NFT({
       network: this.network,
-      address: this.address,
-      web3: this.web3
+      address: this.activeAddress,
+      web3: this.web3,
+      apollo: this.$apollo
     });
     this.nft.init().then(() => {
       this.ready = true;
@@ -345,11 +372,27 @@ export default {
       this.toAddress = address;
     },
     nextPage() {
-      this.nft.nextPage().then(() => {
-        this.tokens = this.nft.selectNftsToShow();
-      });
+      try {
+        if (this.contentLoading) return;
+        this.contentLoading = true;
+        this.nft
+          .nextPage()
+          .then(() => {
+            this.tokens = this.nft.selectNftsToShow();
+            this.currentPage = this.nft.getCurrentPage();
+            this.countPerPage = this.nft.getCountPerPage();
+            this.contentLoading = false;
+          })
+          .catch(err =>{
+            this.contentLoading = false;
+            console.log(err); // todo remove dev item
+          });
+      } catch (e) {
+        this.contentLoading = false;
+      }
     },
     priorPage() {
+      // if (this.contentLoading) return;
       this.nft.priorPage();
       this.tokens = this.nft.selectNftsToShow();
     },
@@ -363,6 +406,7 @@ export default {
       if (this.showContracts.length === 0) {
         this.showContracts = this.nft.getAvailableContracts();
       }
+      this.contentLoading = true;
       this.tokens = [];
       this.nft
         .setActiveContract(this.nft.getAvailableContracts()[val].contract)
@@ -370,6 +414,10 @@ export default {
           this.nft.getPageValues().then(result => {
             if (result.tokens && Array.isArray(result.tokens)) {
               this.tokens = this.nft.selectNftsToShow();
+              this.currentPage = this.nft.getCurrentPage();
+              this.countPerPage = this.nft.getCountPerPage();
+              this.contentLoading = false;
+              console.log(this.tokens); // todo remove dev item
               this.$nextTick();
             } else {
               this.showItems = [];
