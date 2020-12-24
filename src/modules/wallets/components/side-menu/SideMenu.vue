@@ -186,7 +186,7 @@ export default {
 .mew-component--sidemenu-mobile {
   background-image: url('~@/assets/images/backgrounds/bg-light.jpg');
   background-position: top right;
-  background-size: 220%;
+  background-size: cover;
   position: relative;
   width: 100%;
 }
