@@ -79,11 +79,11 @@ export default class NFT {
   }
 
   getCurrentPage() {
-   return this.currentActive.currentPage
+    return this.currentActive.currentPage;
   }
 
-  getCountPerPage(){
-    return this.currentActive.countPerPage
+  getCountPerPage() {
+    return this.currentActive.countPerPage;
   }
 
   getAvailableContracts() {
@@ -150,10 +150,10 @@ export default class NFT {
 
   getImageUrl(tokenId, contract) {
     if (!contract) contract = this.currentActive.contract;
-    if(tokenId.slice(0,2) === '0x'){
+    if (!tokenId) return '';
+    if (tokenId.slice(0, 2) === '0x') {
       tokenId = tokenId.slice(2);
     }
-    console.log(tokenId); // todo remove dev item
     return this.currentActive.getImageUrl(contract, tokenId);
   }
 }

@@ -9,64 +9,25 @@ export default class API {
     this.wallet = new WalletCalls(options.apollo);
   }
 
+  getContractDetails(contract) {
+    return fetch(
+      `https://nft.mewapi.io/nft?contractHash=${contract}`
+    ).then(res => res.json());
+  }
+
   getTokens() {
     return new Promise((resolve, reject) => {
-      this.wallet.getOwnersERC721TokensBalances(this.address)
-        .then(console.log)
-      fetch(`${this.openSeaLambdaUrl}/nft?address=${this.address}`, {
-        mode: 'cors',
-        cache: 'no-cache',
-        method: 'GET'
-      })
-        .then(data => data.json())
-        .then(newData => {
-          if (newData.message) {
-            throw Error(newData.message);
-          }
-          // console.log(newData); // todo remove dev item
-          resolve(newData);
+      this.wallet
+        .getOwnersERC721TokensBalances(this.address)
+        .then(res => {
+          return resolve(res);
         })
-        .catch(error => {
-          // eslint-disable-next-line
-          console.error(error);
-          this.retryCount++;
-          if (this.retryCount < 3) {
-            setTimeout(() => {
-              resolve(this.getTokens());
-            }, 1000);
-          } else {
-            reject(error);
-          }
-        });
+        .catch(reject);
     });
   }
 
   getNftDetailsApi(contract, params) {
-    console.log(params.address, contract); // todo remove dev item
-      // .then(result => {
-      //   return
-      // })
-    fetch(`${this.openSeaLambdaUrl}/nft`, {
-      mode: 'cors',
-      cache: 'no-cache',
-      method: 'POST',
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: '',
-        params,
-        id: 83
-      })
-    })
-      .then(data => data.json())
-      .then(data => {
-        console.log('deetail', data.result); // todo remove dev item
-
-        return data.result.tokenContracts.find(item => {
-          return item.contractIdAddress === contract;
-        });
-      });
-    return this.wallet.getOwnersERC721Tokens(params.address, contract)
-
+    return this.wallet.getOwnersERC721Tokens(params.address, contract);
   }
 
   getImage(nft) {

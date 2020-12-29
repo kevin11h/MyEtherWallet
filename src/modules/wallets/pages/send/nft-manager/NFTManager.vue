@@ -14,11 +14,7 @@
                     <h5 class="font-weight-bold">
                       {{ nft.getActiveName() }}
                     </h5>
-                    <div>
-                      Showing {{ startIndex }} to {{ endIndex }}
-                      <!--of Total
-                      {{ nft.getTokenCount() }}-->
-                    </div>
+                    <div>Showing {{ startIndex }} to {{ endIndex }}</div>
                   </div>
                   <div v-if="tokens.length === 0">Loading</div>
                   <div v-if="tokens.length !== 0">
@@ -27,11 +23,11 @@
                       class="pl-4 pr-6 py-0 mb-2 d-flex align-center justify-space-between"
                     >
                       <mew-button
-                        v-if="hasPriorPage"
                         :has-full-width="false"
                         btn-style="outline"
                         title="Prior"
                         btn-size="small"
+                        :disabled="!hasPriorPage && !contentLoading"
                         @click.native="priorPage"
                       />
                       <mew-button
@@ -83,73 +79,75 @@
       >
         <template #mewOverlayBody>
           <img
-            height="151"
+            height="200"
             :src="selectedNft.image ? selectedNft.image : imageUrl(selectedNft)"
             alt="Crypto Kitty"
           />
-          <div class="d-flex flex-column align-content-center">
-            <div class="ma-5">#{{ selectedNft.name }}</div>
-            <mew-address-select
-              ref="addressSelect"
-              :value="toAddress"
-              :copy-tooltip="$t('common.copy')"
-              :save-tooltip="$t('common.save')"
-              :enable-save-address="true"
-              :label="$t('sendTx.to-addr')"
-              :items="addresses"
-              :placeholder="$t('sendTx.enter-addr')"
-              :success-toast="$t('sendTx.success.title')"
-              :is-valid-address="isValidAddress()"
-              @input="setAddress"
-            />
-            <mew-expand-panel
-              ref="expandPanel"
-              is-toggle
-              has-dividers
-              :panel-items="expandPanel"
-            >
-              <template #panelBody1>
-                <div
-                  class="d-flex justify-space-between px-5 border-bottom pb-5"
-                >
-                  <div class="mew-body font-weight-medium d-flex align-center">
-                    {{ $t('sendTx.tx-fee') }}
-                    <mew-tooltip class="ml-1" text="" />
-                  </div>
-                  <div v-show="isEth">
-                    <i18n path="sendTx.cost-eth-usd" tag="div">
-                      <span slot="eth">{{ txFeeInETH }}</span>
-                      <span slot="usd">{{ txFeeInUSD }}</span>
-                    </i18n>
-                  </div>
-                </div>
-                <div>
-                  <mew-input
-                    :value="customGasLimit"
-                    :disabled="true"
-                    :label="$t('common.gas.limit')"
-                    placeholder=""
-                  />
-                </div>
+          <div class="ma-5">{{ selectedNft.name }}</div>
 
+          <!--                      <div class="d-sm-flex flex-column align-stretch">-->
+
+          <mew-address-select
+            ref="addressSelect"
+            class="full-width"
+            :value="toAddress"
+            :copy-tooltip="$t('common.copy')"
+            :save-tooltip="$t('common.save')"
+            :enable-save-address="true"
+            :label="$t('sendTx.to-addr')"
+            :items="addresses"
+            :placeholder="$t('sendTx.enter-addr')"
+            :success-toast="$t('sendTx.success.title')"
+            :is-valid-address="isValidAddress()"
+            @input="setAddress"
+          />
+          <mew-expand-panel
+            ref="expandPanel"
+            class="full-width"
+            is-toggle
+            has-dividers
+            :panel-items="expandPanel"
+          >
+            <template #panelBody1>
+              <div class="d-flex justify-space-between px-5 border-bottom pb-5">
+                <div class="mew-body font-weight-medium d-flex align-center">
+                  {{ $t('sendTx.tx-fee') }}
+                  <mew-tooltip class="ml-1" text="" />
+                </div>
+                <div v-show="isEth">
+                  <i18n path="sendTx.cost-eth-usd" tag="div">
+                    <span slot="eth">{{ txFeeInETH }}</span>
+                    <span slot="usd">{{ txFeeInUSD }}</span>
+                  </i18n>
+                </div>
+              </div>
+              <div>
                 <mew-input
-                  v-model="data"
-                  :label="$t('sendTx.add-data')"
+                  :value="customGasLimit"
                   :disabled="true"
-                  placeholder=" "
-                  class="mt-10 mb-n5"
+                  :label="$t('common.gas.limit')"
+                  placeholder=""
                 />
-              </template>
-            </mew-expand-panel>
-            <mew-button
-              :has-full-width="false"
-              btn-style="outline"
-              title="Confirm & send"
-              btn-size="large"
-              :disabled="validValues"
-              @click.native="sendTx(selectedNft)"
-            />
-          </div>
+              </div>
+
+              <mew-input
+                v-model="data"
+                :label="$t('sendTx.add-data')"
+                :disabled="true"
+                placeholder=" "
+                class="mt-10 mb-n5"
+              />
+            </template>
+          </mew-expand-panel>
+          <mew-button
+            :has-full-width="false"
+            btn-style="outline"
+            title="Confirm & send"
+            btn-size="large"
+            :disabled="validValues"
+            @click.native="sendTx(selectedNft)"
+          />
+          <!--                    </div>-->
         </template>
       </mew-overlay>
       <div class="pa-4"></div>
@@ -243,17 +241,22 @@ export default {
       return false;
     },
     validValues() {
-      return this.isValidAddress() && this.activeAddress !== '';
+      return !(this.isValidAddress() && this.activeAddress !== '' && this.customGasLimit !== '');
     },
     activeAddress() {
-      // return this.address
-      return '0x2e9ed02f4a431ce26e81ec4f1f879fce7daf008d';
+      return this.address
     },
     startIndex() {
       return 1 + (this.currentPage * this.countPerPage - this.countPerPage);
     },
     endIndex() {
       const endIdx = this.currentPage * this.countPerPage;
+      if (this.tokens.length < this.countPerPage) {
+        return (
+          this.currentPage * this.countPerPage -
+          (this.countPerPage - this.tokens.length)
+        );
+      }
       return this.tokens.length < endIdx ? endIdx : this.tokens.length;
     }
   },
@@ -264,6 +267,13 @@ export default {
       web3: this.web3,
       apollo: this.$apollo
     });
+    this.addresses = [
+      {
+        address: this.address,
+        currency: 'ETH',
+        nickname: 'My Address'
+      }
+    ];
     this.nft.init().then(() => {
       this.ready = true;
       const detailsRaw = this.nft.getAvailableContracts();
@@ -354,22 +364,38 @@ export default {
           data: details.data
         };
         this.data = details.data;
-        this.web3.eth.estimateGas(params).then(res => {
-          this.customGasLimit = res.toString();
-          this.txFeeInETH = this.txFeeETH();
-          this.txFeeInUSD = this.txFeeUSD();
-        });
+        this.web3.eth
+          .estimateGas(params)
+          .then(res => {
+            this.customGasLimit = res.toString();
+            this.txFeeInETH = this.txFeeETH();
+            this.txFeeInUSD = this.txFeeUSD();
+          })
+          .catch(err => {
+            this.customGasLimit = '';
+            this.toastType = 'warning';
+            this.toastMsg = err.message;
+            this.$refs.toast.showToast();
+          });
       } catch (e) {
+        this.customGasLimit = '';
         this.toastType = 'warning';
         this.toastMsg = e.message;
         this.$refs.toast.showToast();
       }
     },
     isValidAddress() {
-      return this.nft ? this.nft.isValidAddress(this.toAddress) : false;
+      if (this.nft.ready) {
+        return this.nft.isValidAddress(this.toAddress);
+      }
+      return false;
     },
     setAddress(address) {
-      this.toAddress = address;
+      if (typeof address === 'object' && !!address) {
+        this.toAddress = address.address;
+      } else {
+        this.toAddress = address;
+      }
     },
     nextPage() {
       try {
@@ -383,18 +409,18 @@ export default {
             this.countPerPage = this.nft.getCountPerPage();
             this.contentLoading = false;
           })
-          .catch(err =>{
+          .catch(() => {
             this.contentLoading = false;
-            console.log(err); // todo remove dev item
           });
       } catch (e) {
         this.contentLoading = false;
       }
     },
     priorPage() {
-      // if (this.contentLoading) return;
       this.nft.priorPage();
       this.tokens = this.nft.selectNftsToShow();
+      this.currentPage = this.nft.getCurrentPage();
+      this.countPerPage = this.nft.getCountPerPage();
     },
     imageUrl(token) {
       if (this.ready) {
@@ -417,7 +443,6 @@ export default {
               this.currentPage = this.nft.getCurrentPage();
               this.countPerPage = this.nft.getCountPerPage();
               this.contentLoading = false;
-              console.log(this.tokens); // todo remove dev item
               this.$nextTick();
             } else {
               this.showItems = [];
@@ -453,6 +478,9 @@ export default {
       font-weight: 600 !important;
       border-left: 4px solid var(--v-primary-base) !important;
     }
+  }
+  .full-wide {
+    min-width: 75%;
   }
 }
 </style>

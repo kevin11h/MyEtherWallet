@@ -45,23 +45,43 @@ export default class Nft {
         return this.api.getTokens().then(configData => {
           if (!configData.error) {
             try {
-              configData.tokenContracts.forEach(data => {
-                nftData[data.contractIdAddress] = new NftCollection({
-                  details: data,
-                  api: this.api,
-                  address: this.activeAddress,
-                  web3: this.web3,
-                  apollo: this.apollo
-                });
-                this.ownedTokenBasicDetails.push(
-                  nftData[data.contractIdAddress].getPanelDetails()
-                );
+              const getDetails = async () => {
+                for (let i = 0; i < configData.tokenContracts.length; i++) {
+                  const data = configData.tokenContracts[i];
+                  const details = await this.api.getContractDetails(
+                    data.contractIdAddress
+                  );
+                  if (details.tokenContracts) {
+                    if (Array.isArray(details.tokenContracts)) {
+                      try {
+                        data.name = details.tokenContracts[0].name;
+                      } catch (e) {
+                        data.name = 'Unknown Nft';
+                      }
+                    }
+                  } else {
+                    data.name = details.name;
+                  }
+                  nftData[data.contractIdAddress] = new NftCollection({
+                    details: data,
+                    api: this.api,
+                    address: this.activeAddress,
+                    web3: this.web3,
+                    apollo: this.apollo
+                  });
+                  this.ownedTokenBasicDetails.push(
+                    nftData[data.contractIdAddress].getPanelDetails()
+                  );
+                }
+                return nftData;
+              };
+              getDetails().then(res => {
+                this.nftConfig = { ...res };
+                selectedContract = Object.keys(this.nftConfig)[0];
+                this.selectedContract = Object.keys(this.nftConfig)[0];
+                this.setAvailableContracts(Object.keys(this.nftConfig));
+                return resolve(selectedContract);
               });
-              this.nftConfig = { ...nftData };
-              selectedContract = Object.keys(this.nftConfig)[0];
-              this.selectedContract = Object.keys(this.nftConfig)[0];
-              this.setAvailableContracts(Object.keys(this.nftConfig));
-              return resolve(selectedContract);
             } catch (e) {
               reject(e);
             }

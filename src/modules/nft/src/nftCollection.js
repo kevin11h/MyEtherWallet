@@ -37,6 +37,7 @@ export default class NftCollection {
     });
     this.failureRetryReset = false;
     this.displayEndIndex = 0;
+
   }
 
   getTokens() {
@@ -113,11 +114,6 @@ export default class NftCollection {
         }
         const startIndex = this.getStartIndex();
         const endIndex = this.getEndIndex();
-        console.log(
-          'startIndex, endIndex',
-          startIndex,
-          endIndex < this.count ? endIndex : this.count
-        ); // todo remove dev item
         if (
           this.tokens.length <= this.getEndIndex() &&
           this.tokens.length <= this.getStartIndex()
@@ -196,28 +192,19 @@ export default class NftCollection {
         }
 
         const tokenParse = item => {
-          // console.log(item); // todo remove dev item
-          if (item.name) {
-            if (item.name.includes('ENS') && item.name.includes('Unknown')) {
-              return {
-                description: item.description,
-                name: `#${item.token_id.slice(0, 6)}...${item.token_id.slice(
-                  -6
-                )}`,
-                token_id: item.token_id,
-                contract: item.contract
-              };
-            }
-          }
-          if (item.name) {
-            if (item.name.length > 30) {
-              item.name = item.name.slice(0, 30);
+          if (item.token_id) {
+            if (item.token_id.length > 30) {
+              item.name = `${item.token_id.slice(0, 6)}...${item.token_id.slice(
+                -6
+              )}`;
+            } else {
+              item.name = item.token_id;
             }
           }
 
           return {
             description: item.description,
-            name: !item.name ? `#${item.token_id}` : item.name,
+            name: `#${item.name}`,
             token_id: item.token_id,
             contract: item.contract
           };
@@ -234,9 +221,7 @@ export default class NftCollection {
               resolve(this.tokens);
               return;
             }
-            // console.log('data.tokens', data.tokens); // todo remove dev item
             allTokens = data.tokens.map(tokenParse);
-            // console.log(allTokens); // todo remove dev item
             this.tokens = allTokens;
             this.isActive = true;
             resolve(allTokens);
@@ -246,7 +231,7 @@ export default class NftCollection {
             reject(err);
           });
       } catch (e) {
-        console.log(e); // todo remove dev item
+        reject(e);
       }
     });
   }
@@ -280,8 +265,8 @@ export default class NftCollection {
   incrementTokenList() {
     return new Promise((resolve, reject) => {
       try {
-        let startIndex = this.getStartIndex();
-        let endIndex = this.getEndIndex();
+        const startIndex = this.getStartIndex();
+        const endIndex = this.getEndIndex();
         if (
           this.tokens.length >= this.count ||
           this.tokens.length >= endIndex
@@ -294,24 +279,7 @@ export default class NftCollection {
         }
         if (this.collectionLoading) {
           resolve(this.getPageState());
-          return;
         }
-
-        if (startIndex < 0) {
-          startIndex = 0;
-          endIndex = 9;
-        }
-        // const selectedContract = this.selectedContract;
-
-        // this.getNftDetails(selectedContract, startIndex, endIndex).then(
-        //   result => {
-        //     this.startIndex = startIndex;
-        //     this.endIndex = endIndex;
-        //     this.tokens = result;
-        //     this.collectionLoading = false;
-        //     return resolve(this.getPageState());
-        //   }
-        // );
       } catch (e) {
         reject(e);
       }
@@ -324,17 +292,8 @@ export default class NftCollection {
     }
     const moreAvailableToGet =
       this.count > this.currentPage * this.countPerPage;
-    const moreToGetForPage = this.count >= this.tokens.length;
-    // ? this.tokens.length <= this.currentPage * this.countPerPage
-    // : this.tokens.length >= (this.currentPage + 1) * this.countPerPage;
-    console.log(
-      this.tokens.length,
-      this.count,
-      'moreAvailableToGet',
-      moreAvailableToGet,
-      'moreToGetForPage',
-      moreToGetForPage
-    ); // todo remove dev item
+    const moreToGetForPage =
+      this.tokens.length >= this.currentPage * this.countPerPage;
     return moreAvailableToGet && moreToGetForPage;
   }
 
