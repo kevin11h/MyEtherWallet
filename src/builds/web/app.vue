@@ -8,6 +8,9 @@
       "
     />
     <welcome-modal ref="welcome" />
+
+    <h1 class="black">{{ isSupportedBrowser }}</h1>
+
     <router-view />
     <footer-container />
     <wallet-launched-footer-banner />
@@ -25,6 +28,7 @@ import { mapState, mapActions } from 'vuex';
 import { Toast } from '@/helpers';
 import LogoutWarningModal from '@/components/LogoutWarningModal';
 import WalletLaunchedBanner from '@/components/WalletLaunchedBanner';
+import supportedBrowser from '@/helpers/supportedBrowser';
 
 export default {
   name: 'App',
@@ -35,6 +39,11 @@ export default {
     'logout-warning-modal': LogoutWarningModal,
     'welcome-modal': WelcomeModal,
     'wallet-launched-footer-banner': WalletLaunchedBanner
+  },
+  data: () => {
+    return {
+      isSupportedBrowser: supportedBrowser
+    };
   },
   computed: {
     ...mapState('main', ['wallet', 'online'])
@@ -68,6 +77,8 @@ export default {
     });
   },
   mounted() {
+    console.log(supportedBrowser);
+
     this.checkIfOnline(navigator.onLine);
     if (!store.get('notFirstTimeVisit') && this.$route.fullPath === '/') {
       this.$refs.welcome.$refs.welcome.show();
