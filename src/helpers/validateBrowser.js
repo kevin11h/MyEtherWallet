@@ -18,7 +18,7 @@ export default browser.satisfies({
   },
 
   // or in general
-  chrome: '>20.1.1432',
+  chrome: '>90.1.1432',
   firefox: '>31',
   opera: '>=22'
 });

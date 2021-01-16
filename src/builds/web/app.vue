@@ -1,20 +1,27 @@
 <template>
   <div id="app">
-    <logout-warning-modal ref="logoutWarningModal" />
-    <header-container
-      v-show="
-        $route.fullPath !== '/getting-started' &&
-        !$route.fullPath.includes('/dapp-submission')
-      "
-    />
-    <welcome-modal ref="welcome" />
+    <!--
+      Hide site content and
+      show warning for unsupported browsers
+    -->
+    <template v-if="!isSupportedBrowser">
+      <unsupported-browser />
+    </template>
 
-    <h1 class="black">{{ isSupportedBrowser }}</h1>
-
-    <router-view />
-    <footer-container />
-    <wallet-launched-footer-banner />
-    <confirmation-container v-if="wallet !== null" />
+    <template v-else>
+      <logout-warning-modal ref="logoutWarningModal" />
+      <header-container
+        v-show="
+          $route.fullPath !== '/getting-started' &&
+          !$route.fullPath.includes('/dapp-submission')
+        "
+      />
+      <welcome-modal ref="welcome" />
+      <router-view />
+      <footer-container />
+      <wallet-launched-footer-banner />
+      <confirmation-container v-if="wallet !== null" />
+    </template>
   </div>
 </template>
 
@@ -28,7 +35,8 @@ import { mapState, mapActions } from 'vuex';
 import { Toast } from '@/helpers';
 import LogoutWarningModal from '@/components/LogoutWarningModal';
 import WalletLaunchedBanner from '@/components/WalletLaunchedBanner';
-import supportedBrowser from '@/helpers/supportedBrowser';
+import UnsupportedBrowser from '@/components/UnsupportedBrowser';
+import ValidateBrowser from '@/helpers/validateBrowser';
 
 export default {
   name: 'App',
@@ -38,11 +46,12 @@ export default {
     'confirmation-container': ConfirmationContainer,
     'logout-warning-modal': LogoutWarningModal,
     'welcome-modal': WelcomeModal,
-    'wallet-launched-footer-banner': WalletLaunchedBanner
+    'wallet-launched-footer-banner': WalletLaunchedBanner,
+    'unsupported-browser': UnsupportedBrowser
   },
   data: () => {
     return {
-      isSupportedBrowser: supportedBrowser
+      isSupportedBrowser: ValidateBrowser
     };
   },
   computed: {
@@ -77,8 +86,6 @@ export default {
     });
   },
   mounted() {
-    console.log(supportedBrowser);
-
     this.checkIfOnline(navigator.onLine);
     if (!store.get('notFirstTimeVisit') && this.$route.fullPath === '/') {
       this.$refs.welcome.$refs.welcome.show();
