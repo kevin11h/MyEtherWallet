@@ -8,8 +8,11 @@
       </div>
       <div class="address"></div>
     </div>
-    <div class="page white p-5">
-      <slot></slot>
+    <div class="page">
+      <div class="bg-spaceman"></div>
+      <div class="p-3 py-4 p-lg-5">
+        <slot></slot>
+      </div>
     </div>
   </div>
 </template>
@@ -27,6 +30,7 @@ export default {
   box-shadow: 15px 15px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   border-radius: 5px;
+  background-color: white;
 }
 
 .control {
@@ -70,6 +74,20 @@ export default {
     height: $address-size;
     width: $address-size;
     border-radius: 100%;
+  }
+}
+.page {
+  position: relative;
+  z-index: 1;
+  .bg-spaceman {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    z-index: -1;
+    background-image: url(~@/assets/images/home/spaceman.png);
+    background-repeat: no-repeat;
+    background-position: top 70px left -110px;
+    opacity: 0.15;
   }
 }
 

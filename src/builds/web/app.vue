@@ -36,7 +36,7 @@ import { Toast } from '@/helpers';
 import LogoutWarningModal from '@/components/LogoutWarningModal';
 import WalletLaunchedBanner from '@/components/WalletLaunchedBanner';
 import UnsupportedBrowser from '@/components/UnsupportedBrowser';
-import ValidateBrowser from '@/helpers/validateBrowser';
+import { isSupportedBrowser } from '@/helpers/validateBrowser';
 
 export default {
   name: 'App',
@@ -51,7 +51,7 @@ export default {
   },
   data: () => {
     return {
-      isSupportedBrowser: ValidateBrowser
+      isSupportedBrowser: isSupportedBrowser
     };
   },
   computed: {
