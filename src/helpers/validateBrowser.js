@@ -4,9 +4,11 @@ const browser = Bowser.getParser(window.navigator.userAgent);
 const isSupportedBrowser = browser.satisfies({
   // declare browsers per OS
   windows: {
-    'internet explorer': '>=80.8.361'
+    // (TESTED) No IE works
+    'internet explorer': '>=999.0.0'
   },
   macos: {
+    // (TESTED)
     safari: '>=14.0.1'
   },
 
@@ -19,10 +21,18 @@ const isSupportedBrowser = browser.satisfies({
   */
 
   // or in general
-  chrome: '>80.0.0',
-  firefox: '>31',
-  opera: '>=22',
-  edge: '>=80.0.361.62'
+
+  // (TESTED)
+  chrome: '>=30',
+
+  // (TESTED)
+  firefox: '>=31',
+
+  // (TESTED)
+  opera: '>=55',
+
+  // (TESTED)
+  edge: '>=80.0.361.57'
 });
 
 const browserInfo = browser.getBrowser();

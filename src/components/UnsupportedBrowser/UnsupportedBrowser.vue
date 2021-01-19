@@ -90,6 +90,10 @@ export default {
       browserName: browserInfo.name,
       browserVersion: browserInfo.version
     };
+  },
+  mounted() {
+    console.log(browserInfo.name);
+    console.log(browserInfo.version);
   }
 };
 </script>
@@ -144,6 +148,7 @@ header {
 
   img {
     height: 150px;
+    filter: drop-shadow(0 0 20px rgba(0, 0, 0, 0.4));
   }
 }
 
